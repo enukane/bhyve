@@ -378,7 +378,9 @@ vmmdev_destroy(struct vmmdev_softc *sc)
 	 * XXX must stop virtual machine instances that may be still
 	 * running and cleanup their state.
 	 */
+	mtx_lock(&vmmdev_mtx);
 	SLIST_REMOVE(&head, sc, vmmdev_softc, link);
+	mtx_unlock(&vmmdev_mtx);
 	destroy_dev(sc->cdev);
 	vm_destroy(sc->vm);
 	free(sc, M_VMMDEV);
@@ -398,11 +400,10 @@ sysctl_vmm_destroy(SYSCTL_HANDLER_ARGS)
 
 	mtx_lock(&vmmdev_mtx);
 	sc = vmmdev_lookup(buf);
+	vmmdev_destroy(sc);
 	if (sc == NULL) {
-		mtx_unlock(&vmmdev_mtx);
 		return (EINVAL);
 	}
-	vmmdev_destroy(sc);
 	mtx_unlock(&vmmdev_mtx);
 	return (0);
 }
